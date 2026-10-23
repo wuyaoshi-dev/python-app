@@ -12,7 +12,7 @@ APP_VERSION = os.getenv("APP_VERSION", "dev")
 @app.get("/")
 async def index() -> dict:
     # pod 字段是主机名，也就是 Pod 名，刷新可看到负载均衡到不同副本
-    return {"app": "python-app@", "version": APP_VERSION, "pod": socket.gethostname()}
+    return {"app": "python-app", "version": APP_VERSION, "pod": socket.gethostname(), "message": "hello webhook",}
 
 
 @app.get("/healthz")
