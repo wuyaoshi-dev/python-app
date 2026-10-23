@@ -7,6 +7,8 @@ pipeline {
 apiVersion: v1
 kind: Pod
 spec:
+  # 用 jenkins ServiceAccount，kubectl 才有第 2 步授予的部署权限
+  serviceAccountName: jenkins
   containers:
   - name: python
     image: python:3.12-slim
