@@ -3,6 +3,8 @@ kind: Deployment
 metadata:
   name: python-app
   namespace: default
+  labels:
+    app: python-app
 spec:
   replicas: 2
   selector:
@@ -15,14 +17,13 @@ spec:
     spec:
       containers:
       - name: python-app
-        # 两个占位符由流水线替换成本次构建的值
-        image: IMAGE_PLACEHOLDER
-        imagePullPolicy: IfNotPresent
+        image: ghcr.io/wuyaoshi-dev/python-app:latest
+        imagePullPolicy: Always
         ports:
         - containerPort: 8000
         env:
         - name: APP_VERSION
-          value: "VERSION_PLACEHOLDER"
+          value: "gitops-v1"
         readinessProbe:
           httpGet:
             path: /healthz
