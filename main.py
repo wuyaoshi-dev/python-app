@@ -5,17 +5,21 @@ from fastapi import FastAPI
 
 app = FastAPI(title="python-app")
 
-# 版本号由流水线在部署时通过环境变量注入
+APP_ENV = os.getenv("APP_ENV", "local")
 APP_VERSION = os.getenv("APP_VERSION", "dev")
 
 
 @app.get("/")
 async def index() -> dict:
-    # pod 字段是主机名，也就是 Pod 名，刷新可看到负载均衡到不同副本
-    return {"app": "python-app", "version": APP_VERSION, "pod": socket.gethostname(), "message": "hello gitops v2 auto-deploy",}
+    return {
+        "app": "python-app",
+        "env": APP_ENV,
+        "version": APP_VERSION,
+        "pod": socket.gethostname(),
+        "message": "hello gitops v2 auto-deploy",
+    }
 
 
 @app.get("/healthz")
 async def healthz() -> dict:
-    # 给 K8s 就绪探针使用
     return {"status": "ok"}

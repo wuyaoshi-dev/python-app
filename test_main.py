@@ -10,6 +10,7 @@ def test_index_returns_app_info():
     assert resp.status_code == 200
     body = resp.json()
     assert body["app"] == "python-app"
+    assert "env" in body
     assert "version" in body
     assert "pod" in body
 
