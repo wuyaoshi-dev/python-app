@@ -7,4 +7,4 @@ resources:
 
 images:
   - name: ghcr.io/wuyaoshi-dev/python-app
-    newTag: latest
+    newTag: sha-5aadc82
