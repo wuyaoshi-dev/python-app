@@ -17,13 +17,13 @@ spec:
     spec:
       containers:
       - name: python-app
-        image: ghcr.io/wuyaoshi-dev/python-app:sha-33e49b2
+        image: ghcr.io/wuyaoshi-dev/python-app:sha-b584bb2
         imagePullPolicy: Always
         ports:
         - containerPort: 8000
         env:
         - name: APP_VERSION
-          value: "sha-33e49b2"
+          value: "sha-b584bb2"
         readinessProbe:
           httpGet:
             path: /healthz
