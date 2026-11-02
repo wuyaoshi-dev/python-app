@@ -3,12 +3,14 @@ name: CI/CD Pipeline
 on:
   push:
     branches: [ master, main ]
+    paths-ignore:
+      - 'deploy/**'
   pull_request:
     branches: [ master, main ]
 
-# 授予工作流写入 GHCR 镜像仓库的权限
+# 授予工作流写入代码仓库 (用于回写部署清单) 与发布镜像的权限
 permissions:
-  contents: read
+  contents: write
   packages: write
 
 jobs:
@@ -81,3 +83,52 @@ jobs:
           # 开启 GitHub Actions 云端层缓存，二次构建极速秒级完成
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+  # ==========================================
+  # 阶段 3：GitOps 清单自动回写 (触发 Argo CD 部署)
+  # ==========================================
+  update-manifest:
+    name: 3. Update GitOps Manifest
+    runs-on: ubuntu-latest
+    needs: build-and-push
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main')
+
+    steps:
+      - name: 检出代码 (包含完整 Git 历史)
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
+
+      - name: 自动更新 deploy/deployment.yaml 镜像版本
+        run: |
+          SHORT_SHA=$(echo "${{ github.sha }}" | cut -c1-7)
+          IMAGE_TAG="sha-${SHORT_SHA}"
+          echo "Updating deployment manifest to image tag: ${IMAGE_TAG}"
+          
+          python3 -c "
+          import re
+          with open('deploy/deployment.yaml', 'r') as f:
+              content = f.read()
+          content = re.sub(r'image:\s*ghcr\.io/[^:]+:.*', f'image: ghcr.io/${{ github.repository }}:${IMAGE_TAG}', content)
+          content = re.sub(r'(- name: APP_VERSION\s*\n\s*value:)\s*[^\n]+', rf'\g<1> \"${IMAGE_TAG}\"', content)
+          with open('deploy/deployment.yaml', 'w') as f:
+              f.write(content)
+          "
+          
+          echo "=== Diff in deployment.yaml ==="
+          git diff deploy/deployment.yaml
+
+      - name: 提交并推送到 GitHub (带 [skip ci] 防止递归触发)
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          
+          if git diff --quiet deploy/deployment.yaml; then
+            echo "No changes in deployment.yaml, skip commit."
+          else
+            SHORT_SHA=$(echo "${{ github.sha }}" | cut -c1-7)
+            git add deploy/deployment.yaml
+            git commit -m "chore(gitops): auto-update image to sha-${SHORT_SHA} [skip ci]"
+            git push origin ${{ github.ref_name }}
+          fi
